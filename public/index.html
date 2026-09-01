@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- PWA Setup -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <title>Campus Mesh | Pro</title>
+    <!-- QR Code Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        /* Professional Color Palette */
+        :root {
+            --primary: #2563eb;       
+            --primary-hover: #1d4ed8;
+            --bg-body: #f8fafc;       
+            --bg-card: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --msg-you-bg: #2563eb;
+            --msg-you-text: #ffffff;
+            --msg-peer-bg: #f1f5f9;
+            --msg-peer-text: #1e293b;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: var(--bg-body); 
+            color: var(--text-main); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            overflow: hidden; 
+        }
+
+        .container { 
+            background: var(--bg-card); 
+            width: 100%; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            position: relative; 
+        }
+        @media (min-width: 768px) {
+            .container { max-width: 800px; height: 90vh; border-radius: 20px; box-shadow: 0 20px 40px rgba(15, 23, 42, 0.1); border: 1px solid var(--border-color); }
+        }
+
+        .header { 
+            background: #ffffff; 
+            padding: 16px 24px; 
+            text-align: center; 
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 10;
+        }
+        .header h2 { margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
+        .status-badge { 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 6px;
+            margin-top: 8px; 
+            padding: 4px 12px; 
+            border-radius: 20px; 
+            font-size: 0.75rem; 
+            font-weight: 600;
+            background: #f1f5f9; 
+            color: var(--text-muted);
+            transition: all 0.3s ease;
+        }
+        .status-connected { background: #dcfce7 !important; color: #166534 !important; }
+
+        /* Install App Button Style */
+        #installAppBtn {
+            display: none;
+            margin-top: 10px;
+            background: #10b981;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);
+            animation: popIn 0.5s ease;
+        }
+        #installAppBtn:hover { background: #059669; }
+
+        .main-content { flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; }
+        .setup-section { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+        @media (min-width: 600px) { .setup-section { flex-direction: row; } }
+        
+        input[type="text"], select { width: 100%; padding: 14px 16px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 1rem; outline: none; background: #f8fafc; transition: border 0.2s, box-shadow 0.2s; }
+        input[type="text"]:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); background: #ffffff; }
+
+        .btn { padding: 14px 24px; background: var(--primary); color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s, transform 0.1s; display: inline-flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn:active { transform: scale(0.98); }
+        .btn:hover { background: var(--primary-hover); }
+        .btn-small { padding: 8px 16px; font-size: 0.85rem; border-radius: 8px; }
+        .btn-success { background: var(--success); }
+        .btn-success:hover { background: #059669; }
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-block { width: 100%; background: #4f46e5; }
+        .btn-block:hover { background: #4338ca; }
+
+        .divider { display: flex; align-items: center; text-align: center; margin: 24px 0; color: var(--text-muted); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        .divider::before, .divider::after { content: ""; flex: 1; border-bottom: 1px solid var(--border-color); }
+        .divider::before { margin-right: 15px; } .divider::after { margin-left: 15px; }
+
+        .user-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #ffffff; border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .user-item span { display: flex; align-items: center; gap: 10px; font-size: 1rem; }
+
+        .chat-interface { display: none; flex-direction: column; flex: 1; height: 100%; }
+        .chat-box { flex: 1; background: #ffffff; overflow-y: auto; padding: 10px 0; display: flex; flex-direction: column; gap: 12px; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+        .chat-box::-webkit-scrollbar { width: 6px; }
+        .chat-box::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        .message { max-width: 85%; padding: 12px 16px; font-size: 0.95rem; line-height: 1.5; word-wrap: break-word; display: flex; flex-direction: column; }
+        .message.system { align-self: center; background: transparent; color: var(--text-muted); font-size: 0.8rem; font-weight: 500; text-align: center; padding: 4px 12px; }
+        .message.you { align-self: flex-end; background: var(--msg-you-bg); color: var(--msg-you-text); border-radius: 20px 20px 4px 20px; box-shadow: 0 2px 5px rgba(37,99,235,0.2); }
+        .message.peer { align-self: flex-start; background: var(--msg-peer-bg); color: var(--msg-peer-text); border-radius: 20px 20px 20px 4px; border: 1px solid var(--border-color); }
+        .sender-info { font-size: 0.75rem; font-weight: 700; margin-bottom: 4px; opacity: 0.9; }
+        .message.you .sender-info { color: #bfdbfe; text-align: right; }
+        .message.peer .sender-info { color: #64748b; }
+
+        .controls { background: var(--bg-card); padding-top: 15px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px; margin-top: auto; }
+        .input-group { display: flex; gap: 8px; }
+        .input-group input[type="text"] { border-radius: 24px; padding: 14px 20px; }
+        button.action-btn { padding: 14px 24px; border-radius: 24px; background: var(--primary); color: white; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        button.action-btn:hover:not(:disabled) { background: var(--primary-hover); }
+        button.action-btn:disabled, input:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        .file-upload-wrapper { display: flex; align-items: center; gap: 10px; background: #f8fafc; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border-color); }
+        .file-upload-wrapper input[type="file"] { font-size: 0.85rem; color: var(--text-muted); flex: 1; }
+        .file-upload-wrapper .action-btn { padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; background: #475569; }
+        
+        progress { width: 100%; height: 6px; display: none; border-radius: 10px; overflow: hidden; appearance: none; }
+        progress::-webkit-progress-value { background-color: var(--primary); }
+        progress::-webkit-progress-bar { background-color: #e2e8f0; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-box { background: white; padding: 30px; border-radius: 20px; text-align: center; width: 90%; max-width: 340px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .modal-box h3 { margin-top: 0; font-size: 1.25rem; color: var(--text-main); margin-bottom: 10px;}
+        .modal-box p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px;}
+        .modal-buttons { display: flex; justify-content: stretch; gap: 10px; }
+        .modal-buttons .btn { flex: 1; }
+        #qrcode-container { background: white; padding: 15px; border-radius: 12px; border: 1px solid var(--border-color); margin: 0 auto 20px auto; display: inline-block; }
+        #qrRoomCodeText { font-size: 1.5rem; letter-spacing: 2px; color: var(--primary); margin: 5px 0 20px 0; }
+        
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div id="requestModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>🔔 Connection Request</h3>
+            <p id="requestMessage">Someone wants to connect with you.</p>
+            <div class="modal-buttons">
+                <button id="declineReqBtn" class="btn btn-danger">Decline</button>
+                <button id="acceptReqBtn" class="btn btn-success">Accept</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="qrModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>📱 Scan to Join</h3>
+            <p>Ask your friend to scan this code on their camera.</p>
+            <div id="qrcode-container"></div>
+            <p style="margin-bottom: 0;">Or use Room Code:</p>
+            <h4 id="qrRoomCodeText"></h4>
+            <div class="modal-buttons">
+                <button id="closeQrBtn" class="btn" style="background: #e2e8f0; color: #0f172a;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h2>Campus Mesh</h2>
+            <div id="statusBadge" class="status-badge">
+                <span style="font-size: 8px;">🔴</span> Not Connected
+            </div>
+            <!-- PWA Install Button -->
+            <button id="installAppBtn">⬇️ Install App</button>
+        </div>
+
+        <div class="main-content">
+            <div id="nameSetupDiv">
+                <h3 style="margin-bottom: 15px; color: var(--text-main); font-size: 1.1rem;">Set up your profile</h3>
+                <div class="setup-section">
+                    <input type="text" id="myNameInput" placeholder="Enter your display name..." />
+                    <select id="myAvatarInput" style="max-width: 120px;">
+                        <option value="👨‍💻">👨‍💻 Tech</option>
+                        <option value="🎓">🎓 Student</option>
+                        <option value="😎">😎 Cool</option>
+                        <option value="👻">👻 Ghost</option>
+                        <option value="🤖">🤖 Robot</option>
+                    </select>
+                </div>
+                <button id="setNameBtn" class="btn btn-block">Continue to Dashboard</button>
+            </div>
+
+            <div id="connectionOptionsDiv" style="display: none;">
+                <button id="createQRBtn" class="btn btn-block" style="margin-bottom: 15px;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="vertical-align: middle;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Create Room & Show QR
+                </button>
+                <div class="setup-section" style="margin-bottom: 0;">
+                    <input type="text" id="roomCodeInput" placeholder="Or enter secret code..." />
+                    <button id="joinRoomBtn" class="btn" style="background: #475569;">Join</button>
+                </div>
+                <div class="divider"><span>Local Network</span></div>
+                <div>
+                    <h3 style="margin: 0 0 15px 0; font-size: 1rem; color: var(--text-main);">🟢 Active Peers</h3>
+                    <div id="usersListContainer"></div>
+                </div>
+            </div>
+
+            <div id="chatInterface" class="chat-interface">
+                <div id="chatBox" class="chat-box"></div>
+                <div class="controls">
+                    <div class="input-group">
+                        <input type="text" id="msgInput" placeholder="Type a message..." disabled />
+                        <button id="sendBtn" class="action-btn" disabled>
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="vertical-align: middle;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                        </button>
+                    </div>
+                    <progress id="fileProgress" value="0" max="100"></progress>
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="fileInput" disabled />
+                        <button id="sendFileBtn" class="action-btn" disabled>Send File</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // --- PWA Service Worker Registration & Install Prompt Logic ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW Registration failed: ', err));
+            });
+        }
+
+        let deferredPrompt;
+        const installAppBtn = document.getElementById('installAppBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installAppBtn.style.display = 'block';
+        });
+
+        installAppBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    installAppBtn.style.display = 'none';
+                }
+                deferredPrompt = null;
+            }
+        });
+        // --------------------------------------------------------------
+
+        const socket = io();
+        let peerConnection;
+        let dataChannel;
+        let currentRoom = '';
+        let pendingRequesterId = null;
+        const CHUNK_SIZE = 16384; 
+        let receiveBuffer = [];
+        let receivedSize = 0;
+        let incomingFileInfo = null;
+        const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+        let myInfo = { name: '', avatar: '' };
+
+        const chatBox = document.getElementById('chatBox');
+        const statusBadge = document.getElementById('statusBadge');
+        const nameSetupDiv = document.getElementById('nameSetupDiv');
+        const connectionOptionsDiv = document.getElementById('connectionOptionsDiv');
+        const chatInterface = document.getElementById('chatInterface');
+        const usersListContainer = document.getElementById('usersListContainer');
+        const requestModal = document.getElementById('requestModal');
+        const requestMessage = document.getElementById('requestMessage');
+        const qrModal = document.getElementById('qrModal');
+
+        function appendMessage(msg, type = 'system', isHTML = false, senderInfo = null) {
+            const div = document.createElement('div');
+            div.className = `message ${type}`;
+            
+            let content = '';
+            if (senderInfo && type !== 'system') {
+                content += `<div class="sender-info">${senderInfo.avatar} ${senderInfo.name}</div>`;
+            }
+            content += isHTML ? msg : `<span>${msg}</span>`;
+            
+            div.innerHTML = content;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        document.getElementById('setNameBtn').onclick = () => {
+            const name = document.getElementById('myNameInput').value.trim();
+            const avatar = document.getElementById('myAvatarInput').value;
+            if(!name) return alert("Please enter your name!");
+            
+            myInfo = { name, avatar };
+            socket.emit('set-name', myInfo);
+            nameSetupDiv.style.display = 'none';
+            statusBadge.innerHTML = `<span style="font-size:8px;">🔵</span> Logged in as: ${avatar} ${name}`;
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomFromUrl = urlParams.get('room');
+
+            if (roomFromUrl) {
+                currentRoom = roomFromUrl;
+                socket.emit('join-room', currentRoom);
+                connectionOptionsDiv.style.display = 'none';
+                chatInterface.style.display = 'flex';
+                statusBadge.innerHTML = `<span style="font-size:8px;">🟠</span> Waiting in Room: ${currentRoom}...`;
+                appendMessage(`Joined room from QR link. Waiting for peer...`, 'system');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else {
+                connectionOptionsDiv.style.display = 'block';
+            }
+        };
+
+        document.getElementById('createQRBtn').onclick = () => {
+            const uniqueCode = 'drop_' + Math.floor(1000 + Math.random() * 9000);
+            currentRoom = uniqueCode;
+            
+            const joinUrl = `${window.location.origin}${window.location.pathname}?room=${uniqueCode}`;
+            
+            document.getElementById('qrcode-container').innerHTML = '';
+            
+            new QRCode(document.getElementById('qrcode-container'), {
+                text: joinUrl,
+                width: 180,
+                height: 180,
+                colorDark : "#0f172a",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+            
+            document.getElementById('qrRoomCodeText').innerText = uniqueCode;
+            qrModal.style.display = 'flex';
+            
+            socket.emit('join-room', currentRoom);
+            connectionOptionsDiv.style.display = 'none';
+            chatInterface.style.display = 'flex';
+            statusBadge.innerHTML = `<span style="font-size:8px;">🟠</span> Waiting in Room: ${currentRoom}...`;
+            appendMessage(`Room created. Waiting for peer to scan...`, 'system');
+        };
+
+        document.getElementById('closeQrBtn').onclick = () => {
+            qrModal.style.display = 'none';
+        };
+
+        document.getElementById('joinRoomBtn').onclick = () => {
+            const code = document.getElementById('roomCodeInput').value.trim();
+            if(!code) return alert("Please enter a valid room code!");
+            currentRoom = code;
+            socket.emit('join-room', currentRoom);
+            connectionOptionsDiv.style.display = 'none';
+            chatInterface.style.display = 'flex';
+            statusBadge.innerHTML = `<span style="font-size:8px;">🟠</span> Waiting in Room: ${currentRoom}...`;
+            appendMessage(`Joined room '${currentRoom}'. Waiting for peer...`, 'system');
+        };
+
+        socket.on('update-users', (users) => {
+            usersListContainer.innerHTML = '';
+            let hasOtherUsers = false;
+            for (let id in users) {
+                if (id !== socket.id) {
+                    hasOtherUsers = true;
+                    const userDiv = document.createElement('div');
+                    userDiv.className = 'user-item';
+                    userDiv.innerHTML = `<span>${users[id].avatar} <b>${users[id].name}</b></span><button class="btn btn-small" onclick="requestConnection('${id}')">Connect</button>`;
+                    usersListContainer.appendChild(userDiv);
+                }
+            }
+            if (!hasOtherUsers) usersListContainer.innerHTML = '<p style="color:var(--text-muted); font-size:0.9rem; text-align:center; padding: 20px 0;">No other peers online yet...</p>';
+        });
+
+        window.requestConnection = (targetId) => {
+            socket.emit('request-connection', targetId);
+            alert("Connection request sent! Waiting for approval...");
+        };
+
+        socket.on('incoming-request', (data) => {
+            pendingRequesterId = data.fromId;
+            requestMessage.innerHTML = `${data.fromAvatar || '👤'} <b>${data.fromName}</b> wants to connect.`;
+            requestModal.style.display = 'flex'; 
+        });
+
+        document.getElementById('acceptReqBtn').onclick = () => {
+            if(pendingRequesterId) {
+                socket.emit('accept-connection', pendingRequesterId);
+            }
+            requestModal.style.display = 'none'; 
+        };
+
+        document.getElementById('declineReqBtn').onclick = () => {
+            pendingRequesterId = null;
+            requestModal.style.display = 'none'; 
+        };
+
+        socket.on('room-joined', (room) => {
+            currentRoom = room;
+            connectionOptionsDiv.style.display = 'none';
+            chatInterface.style.display = 'flex';
+            appendMessage('Joining private room...', 'system');
+            qrModal.style.display = 'none'; 
+        });
+
+        socket.on('room-joined-initiate', async (room) => {
+            currentRoom = room;
+            connectionOptionsDiv.style.display = 'none';
+            chatInterface.style.display = 'flex';
+            appendMessage('Connection established. Securing channel...', 'system');
+            try {
+                setupPeerConnection();
+                dataChannel = peerConnection.createDataChannel('data-transfer');
+                setupDataChannel(); 
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                socket.emit('offer', { room: currentRoom, offer: offer });
+            } catch (e) { console.error(e); }
+        });
+
+        socket.on('peer-joined', async () => {
+            qrModal.style.display = 'none'; 
+            try {
+                setupPeerConnection();
+                dataChannel = peerConnection.createDataChannel('data-transfer');
+                setupDataChannel(); 
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                socket.emit('offer', { room: currentRoom, offer: offer });
+            } catch (e) { console.error(e); }
+        });
+
+        function setupPeerConnection() {
+            peerConnection = new RTCPeerConnection(config);
+            peerConnection.onicecandidate = (e) => {
+                if (e.candidate) socket.emit('ice-candidate', { room: currentRoom, candidate: e.candidate });
+            };
+            peerConnection.oniceconnectionstatechange = () => {
+                if (peerConnection.iceConnectionState === 'connected' || peerConnection.iceConnectionState === 'completed') {
+                    enableControls();
+                }
+            };
+            peerConnection.ondatachannel = (e) => {
+                dataChannel = e.channel;
+                setupDataChannel();
+            };
+        }
+
+        function setupDataChannel() {
+            dataChannel.binaryType = 'arraybuffer'; 
+            dataChannel.onopen = () => enableControls();
+            dataChannel.onmessage = (e) => {
+                if (typeof e.data === 'string') {
+                    const data = JSON.parse(e.data);
+                    if (data.type === 'chat') {
+                        appendMessage(data.text, 'peer', false, data.sender);
+                    }
+                    else if (data.type === 'file-meta') {
+                        incomingFileInfo = data;
+                        receiveBuffer = []; 
+                        receivedSize = 0;
+                        appendMessage(`Receiving: ${data.name}...`, 'system');
+                        document.getElementById('fileProgress').style.display = 'block';
+                        document.getElementById('fileProgress').value = 0;
+                    }
+                } else if (e.data instanceof ArrayBuffer) {
+                    if (!incomingFileInfo) return;
+                    receiveBuffer.push(e.data);
+                    receivedSize += e.data.byteLength;
+                    document.getElementById('fileProgress').value = (receivedSize / incomingFileInfo.size) * 100;
+                    
+                    if (receivedSize === incomingFileInfo.size) {
+                        const blob = new Blob(receiveBuffer);
+                        const url = URL.createObjectURL(blob);
+                        const link = `<a href="${url}" download="${incomingFileInfo.name}" style="color:var(--primary); font-weight:bold; text-decoration: underline;">Download File</a>`;
+                        appendMessage(`File Ready! <br> ${link}`, 'peer', true, incomingFileInfo.sender);
+                        document.getElementById('fileProgress').style.display = 'none';
+                        receiveBuffer = [];
+                        incomingFileInfo = null;
+                    }
+                }
+            };
+        }
+
+        function enableControls() {
+            if (!document.getElementById('msgInput').disabled) return;
+            document.getElementById('msgInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+            document.getElementById('fileInput').disabled = false;
+            document.getElementById('sendFileBtn').disabled = false;
+            
+            statusBadge.classList.add('status-connected');
+            statusBadge.innerHTML = `<span style="font-size:8px;">🟢</span> Secure Channel Active`;
+            appendMessage('Connection established successfully! You can now chat & drop files.', 'system');
+        }
+
+        socket.on('offer', async (data) => {
+            try {
+                setupPeerConnection();
+                await peerConnection.setRemoteDescription(data);
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                socket.emit('answer', { room: currentRoom, answer: answer });
+            } catch (e) {}
+        });
+        socket.on('answer', async (data) => { try { await peerConnection.setRemoteDescription(data); } catch (e) {} });
+        socket.on('ice-candidate', async (data) => { try { await peerConnection.addIceCandidate(data); } catch (e) {} });
+
+        document.getElementById('sendBtn').onclick = () => {
+            const msg = document.getElementById('msgInput').value;
+            if (dataChannel && dataChannel.readyState === 'open' && msg.trim() !== '') {
+                const payload = JSON.stringify({ type: 'chat', text: msg, sender: myInfo });
+                dataChannel.send(payload);
+                appendMessage(msg, 'you', false, myInfo);
+                document.getElementById('msgInput').value = '';
+            }
+        };
+
+        document.getElementById('sendFileBtn').onclick = () => {
+            const file = document.getElementById('fileInput').files[0];
+            if (!file || !dataChannel || dataChannel.readyState !== 'open') return;
+            
+            document.getElementById('fileProgress').style.display = 'block';
+            document.getElementById('fileProgress').value = 0;
+            appendMessage(`Sending: ${file.name}`, 'system');
+            
+            dataChannel.send(JSON.stringify({ type: 'file-meta', name: file.name, size: file.size, sender: myInfo }));
+            
+            const fileReader = new FileReader();
+            let offset = 0;
+            dataChannel.bufferedAmountLowThreshold = 65536;
+
+            const sendNextChunk = () => {
+                if (offset < file.size) {
+                    const slice = file.slice(offset, offset + CHUNK_SIZE);
+                    fileReader.readAsArrayBuffer(slice);
+                } else {
+                    appendMessage('Transfer Complete!', 'system');
+                    document.getElementById('fileProgress').style.display = 'none';
+                    document.getElementById('fileInput').value = ''; 
+                }
+            };
+
+            fileReader.onload = (e) => {
+                try {
+                    dataChannel.send(e.target.result); 
+                    offset += e.target.result.byteLength;
+                    document.getElementById('fileProgress').value = (offset / file.size) * 100;
+                    
+                    if (dataChannel.bufferedAmount > dataChannel.bufferedAmountLowThreshold) {
+                        dataChannel.onbufferedamountlow = () => {
+                            dataChannel.onbufferedamountlow = null;
+                            sendNextChunk();
+                        };
+                    } else {
+                        sendNextChunk();
+                    }
+                } catch (err) {
+                    console.error("File send error:", err);
+                }
+            };
+            setTimeout(() => sendNextChunk(), 200);
+        };
+        
+        document.getElementById('msgInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('sendBtn').click(); });
+    </script>
+</body>
+</html>
